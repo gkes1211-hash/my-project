@@ -25,6 +25,13 @@ export function grade(problem, input) {
       return gradeFraction(problem.answer, input);
     case 'decimal':
       return gradeDecimal(problem.answer, input);
+    case 'multi':
+      return gradeMulti(problem.answer, input);
+    case 'minmax':
+      return gradeMinMax(problem.answer, input);
+    case 'compare':
+    case 'choice':
+      return gradeChoice(problem, input);
     default:
       throw new Error(`모르는 답 형식: ${problem.answerType}`);
   }
@@ -42,6 +49,48 @@ function gradeDecimal(answer, input) {
   const v = Dec.parse(input);
   if (!v) return invalid('소수를 바르게 입력해 주세요. (예: 2.35)');
   return sameValue(v, answer) ? { result: 'correct', value: v } : { result: 'wrong', value: v };
+}
+
+// 여러 개: "3, 5, 7"처럼 쉼표나 띄어쓰기로 구분. 순서는 상관없다.
+// 빠진 수와 들어가면 안 되는 수가 몇 개인지 따로 알려 준다. (기획서 8번)
+function gradeMulti(answer, input) {
+  const tokens = String(input ?? '')
+    .split(/[\s,，、]+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return invalid('답을 입력해 주세요. 여러 개는 쉼표(,)로 구분해요.');
+  if (tokens.some((t) => !/^\d+$/.test(t))) return invalid('자연수만 쉼표(,)로 구분해서 입력해 주세요.');
+  const given = [...new Set(tokens.map(Number))].sort((a, b) => a - b);
+  const want = new Set(answer);
+  const missing = answer.filter((x) => !given.includes(x)).length;
+  const extra = given.filter((x) => !want.has(x)).length;
+  if (!missing && !extra) return { result: 'correct', value: given };
+  const parts = [];
+  if (missing) parts.push(`빠진 수가 ${missing}개 있어요.`);
+  if (extra) parts.push(`들어가면 안 되는 수가 ${extra}개 있어요.`);
+  return { result: 'wrong', value: given, message: parts.join(' ') };
+}
+
+// 가장 작은 수와 가장 큰 수: input { min, max }
+function gradeMinMax(answer, input) {
+  const min = readInt(input.min);
+  const max = readInt(input.max);
+  if (min === null || max === null) return invalid('가장 작은 수와 가장 큰 수를 모두 써 주세요.');
+  if (Number.isNaN(min) || Number.isNaN(max)) return invalid('자연수만 입력해 주세요.');
+  const value = { min, max };
+  const okMin = min === answer.min;
+  const okMax = max === answer.max;
+  if (okMin && okMax) return { result: 'correct', value };
+  let message = '';
+  if (okMin) message = '가장 작은 수는 맞았어요. 가장 큰 수를 다시 볼까요?';
+  if (okMax) message = '가장 큰 수는 맞았어요. 가장 작은 수를 다시 볼까요?';
+  return { result: 'wrong', value, message };
+}
+
+// 부등호·객관식: input은 고른 보기 글자
+function gradeChoice(problem, input) {
+  if (!input) return invalid(problem.answerType === 'compare' ? '>, =, < 중에서 골라 주세요.' : '보기에서 하나를 골라 주세요.');
+  if (!problem.options.includes(input)) return invalid('보기에서 하나를 골라 주세요.');
+  return input === problem.answer ? { result: 'correct', value: input } : { result: 'wrong', value: input };
 }
 
 // input: { whole, num, den } (글자)

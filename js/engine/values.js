@@ -1,13 +1,11 @@
-// 답 값(자연수, 분수, 소수)을 비교하고 화면용 글자로 바꾼다.
+// 답 값을 비교하고 화면용 글자로 바꾼다.
+// 값의 종류: 자연수(number), 분수(Frac), 소수(Dec), 여러 개(number[]),
+//           가장 작은 수와 가장 큰 수({min, max}), 글자(부등호·객관식 보기)
 // 화면용 글자에서 [[3/4]]는 분수, [[1 2/3]]은 대분수로 그려진다.
 import { Frac } from '../core/fraction.js';
 import { Dec } from '../core/decimal.js';
 
-export function sameValue(a, b) {
-  if (a instanceof Frac || b instanceof Frac) return toFracValue(a).eq(toFracValue(b));
-  if (a instanceof Dec || b instanceof Dec) return toFracValue(a).eq(toFracValue(b));
-  return a === b;
-}
+const isMinMax = (v) => v !== null && typeof v === 'object' && 'min' in v && 'max' in v;
 
 function toFracValue(v) {
   if (v instanceof Frac) return v;
@@ -16,11 +14,27 @@ function toFracValue(v) {
   throw new Error(`비교할 수 없는 값이에요: ${v}`);
 }
 
+const sortNums = (arr) => [...arr].sort((x, y) => toFracValue(x).cmp(toFracValue(y)));
+
+export function sameValue(a, b) {
+  if (a === null || b === null || a === undefined || b === undefined) return a === b;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    const sa = sortNums(a);
+    const sb = sortNums(b);
+    return sa.every((x, i) => sameValue(x, sb[i]));
+  }
+  if (isMinMax(a) || isMinMax(b)) {
+    return isMinMax(a) && isMinMax(b) && sameValue(a.min, b.min) && sameValue(a.max, b.max);
+  }
+  if (typeof a === 'string' || typeof b === 'string') return a === b;
+  return toFracValue(a).eq(toFracValue(b));
+}
+
 export function isPositive(v) {
   return toFracValue(v).n > 0;
 }
 
-// 기약분수·대분수 형태의 화면용 글자
 export function formatValue(v) {
   if (v instanceof Frac) {
     if (v.d === 1) return String(v.n);
@@ -30,6 +44,8 @@ export function formatValue(v) {
     }
     return `[[${v.n}/${v.d}]]`;
   }
+  if (Array.isArray(v)) return sortNums(v).map(formatValue).join(', ');
+  if (isMinMax(v)) return `가장 작은 수 ${formatValue(v.min)}, 가장 큰 수 ${formatValue(v.max)}`;
   return String(v);
 }
 
