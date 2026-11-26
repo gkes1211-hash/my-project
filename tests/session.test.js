@@ -115,7 +115,7 @@ test('기록 저장: 기기에 저장되고 다시 읽힌다', () => {
   a.recordAttempt({ templateId: 'u1-1-pick', correct: false, cause: 'concept', date: day });
   a.setLevel('u1', 3);
   const b = createStore(storage);
-  assert.deepEqual(b.today(day), { solved: 2, correct: 1 });
+  assert.deepEqual(b.today(day), { solved: 2, correct: 1, passed: 0 });
   assert.equal(b.rateFor(templatesFor(1, 1)), 50);
   assert.equal(b.levelFor('u1'), 3);
   assert.equal(b.data.causes.concept, 1);

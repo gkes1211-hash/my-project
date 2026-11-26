@@ -37,7 +37,9 @@ export function createSession({ templates, mode = 'infinite', level = 1, rng, re
     correct: 0,
     streak: 0,
     bestStreak: 0,
-    results: [], // { templateId, unit, sub, styleName, correct, cause }
+    results: [], // { templateId, unit, sub, styleName, correct, cause, kind: 'main' | 'challenge' }
+    passed: [], // 이번에 통과한 유형 { templateId, unit, sub, styleName }
+    retry: [], // 다음에 다시 도전할 유형 { templateId, unit, sub, styleName }
   };
 }
 
@@ -117,7 +119,7 @@ export function recordResult(s, problem, correct, cause = null) {
   } else {
     s.streak = 0;
   }
-  s.results.push({ templateId: problem.templateId, unit: problem.unit, sub: problem.sub, styleName: problem.styleName, correct, cause });
+  s.results.push({ templateId: problem.templateId, unit: problem.unit, sub: problem.sub, styleName: problem.styleName, correct, cause, kind: 'main' });
   const levelChange = adjustLevel(s, correct);
   return {
     levelChange,
@@ -126,22 +128,33 @@ export function recordResult(s, problem, correct, cause = null) {
   };
 }
 
+// 비슷한 문제 도전에서 푼 문제: 기록만 남기고 난이도·문제 번호는 바꾸지 않는다.
+export function recordExtra(s, problem, correct) {
+  s.results.push({ templateId: problem.templateId, unit: problem.unit, sub: problem.sub, styleName: problem.styleName, correct, cause: null, kind: 'challenge' });
+}
+
 // 오늘의 결과 화면용 요약
 export function summarize(s) {
   const wrongByTemplate = {};
-  for (const r of s.results) if (!r.correct) wrongByTemplate[r.templateId] = (wrongByTemplate[r.templateId] ?? 0) + 1;
+  for (const r of s.results) if (!r.correct && r.kind === 'main') wrongByTemplate[r.templateId] = (wrongByTemplate[r.templateId] ?? 0) + 1;
   const wrongTypes = Object.entries(wrongByTemplate)
     .sort((a, b) => b[1] - a[1])
     .map(([templateId, count]) => {
       const r = s.results.find((x) => x.templateId === templateId);
       return { templateId, unit: r.unit, sub: r.sub, styleName: r.styleName, count };
     });
+  const extra = s.results.filter((r) => r.kind === 'challenge');
+  const uniq = (list) => list.filter((x, i) => list.findIndex((y) => y.templateId === x.templateId) === i);
   return {
     solved: s.solved,
     correct: s.correct,
     rate: s.solved ? Math.round((s.correct / s.solved) * 100) : 0,
+    extraSolved: extra.length,
+    extraCorrect: extra.filter((r) => r.correct).length,
     bestStreak: s.bestStreak,
     level: s.level,
     wrongTypes,
+    passed: uniq(s.passed),
+    retry: uniq(s.retry).filter((r) => !s.passed.some((p) => p.templateId === r.templateId)),
   };
 }

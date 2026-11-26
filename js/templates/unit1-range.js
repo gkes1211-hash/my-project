@@ -440,7 +440,7 @@ const fareTemplate = defineTemplate({
   unit: 1,
   sub: 3,
   style: 'A',
-  styleName: '표 읽기',
+  styleName: '요금표 읽기',
   levels: [1, 2, 3, 4],
   answerType: 'natural',
   make(rng, level) {
@@ -502,7 +502,7 @@ const classTemplate = defineTemplate({
   unit: 1,
   sub: 3,
   style: 'A',
-  styleName: '표 읽기',
+  styleName: '체급표 읽기',
   levels: [1, 2, 3, 4],
   answerType: 'choice',
   make(rng, level) {

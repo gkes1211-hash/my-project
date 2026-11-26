@@ -92,6 +92,11 @@ function assertFigure(f, where) {
   }
 }
 
+test('같은 소단원 안에서 유형 이름이 겹치지 않는다 (결과 화면에서 구분되게)', () => {
+  const names = ALL_TEMPLATES.map((t) => `${t.unit}-${t.sub}-${t.styleName}`);
+  assert.equal(new Set(names).size, names.length, names.filter((n, i) => names.indexOf(n) !== i).join(', '));
+});
+
 test('문제 틀 id가 겹치지 않는다', () => {
   const ids = ALL_TEMPLATES.map((t) => t.id);
   assert.equal(new Set(ids).size, ids.length);
